@@ -147,3 +147,13 @@ then
 fi
 
 
+# petsc
+if [ ! -d programs/petsc ]
+then
+	echo "installing petsc"
+	which mpirun
+	which mpicc
+#	cd programs
+#	git clone -b maint https://bitbucket.org/petsc/petsc petsc
+fi
+
