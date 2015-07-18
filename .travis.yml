@@ -19,6 +19,7 @@ addons:
       - libboost-dev
       - openmpi-bin
       - libopenmpi-dev
+      - gfortran
 
 language: cpp
 compiler: clang
