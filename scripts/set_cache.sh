@@ -36,17 +36,17 @@ then
 	rm -rf $PRG/numdiff-tmp
 fi
 
-# # installing ninja
-# if [ ! -d $PRG/ninja ]
-# then
-# 	echo "installing ninja"
-# 	cd $PRG
-# 	git clone git://github.com/martine/ninja.git
-# 	cd ninja
-# 	git checkout release
-# 	./configure.py --bootstrap > /dev/null
-# 	cd $CASA
-# fi
+# installing ninja
+if [ ! -d $PRG/ninja ]
+then
+	echo "installing ninja"
+	cd $PRG
+	git clone git://github.com/martine/ninja.git
+	cd ninja
+	git checkout release
+	./configure.py --bootstrap > /dev/null
+	cd $CASA
+fi
 
 # astyle
 if [ ! -d $PRG/astyle ]
@@ -131,15 +131,12 @@ then
 	mkdir build
 	cd build
   export PATH=$PRG/cmake/bin:$PATH
+  export PATH=$PWD/programs/ninja:$PATH
 	cmake \
 		-G Ninja \
 		-D CMAKE_INSTALL_PREFIX:PATH=$DST_INST \
-		-D CMAKE_CXX_COMPILER:PATH=/usr/bin/clang++-3.6 \
 		-D CMAKE_CXX_FLAGS:STRING=-w \
-		-D CMAKE_C_COMPILER:PATH=/usr/bin/clang-3.6 \
-		-D CMAKE_C_FLAGS:STRING=-w \
 		.. #> $CASA/dealii_cmake.log 2>&1
-
 	ninja -j3 
 	ninja -j4 install > /dev/null
 	cd $PRG

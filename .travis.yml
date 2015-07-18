@@ -13,7 +13,6 @@ addons:
       - ubuntu-toolchain-r-test
       - llvm-toolchain-precise-3.6
     packages:
-      - ninja-build
       - clang-3.6
       - libblas-dev
       - liblapack-dev
@@ -30,7 +29,7 @@ install:
     - export CASA=$PWD
     - export CXX=clang++-3.6
     - export PATH=$PWD/programs/cmake/bin:$PATH
-      # - export PATH=$PWD/programs/ninja:$PATH
+    - export PATH=$PWD/programs/ninja:$PATH
     - export TRILINOS_DIR=$PWD/programs/trilinos
     - export DEAL_II_DIR=$PWD/programs/dealii
     - export PATH=$PWD/programs/astyle/build/gcc/bin:$PATH
