@@ -19,17 +19,17 @@ then
 	mv $PRG/cmake-* $PRG/cmake
 fi
 
-# installing ninja
-if [ ! -d $PRG/ninja ]
-then
-	echo "installing ninja"
-	cd $PRG
-	git clone git://github.com/martine/ninja.git
-	cd ninja
-	git checkout release
-	./configure.py --bootstrap > /dev/null
-	cd $CASA
-fi
+# # installing ninja
+# if [ ! -d $PRG/ninja ]
+# then
+# 	echo "installing ninja"
+# 	cd $PRG
+# 	git clone git://github.com/martine/ninja.git
+# 	cd ninja
+# 	git checkout release
+# 	./configure.py --bootstrap > /dev/null
+# 	cd $CASA
+# fi
 
 # astyle
 if [ ! -d $PRG/astyle ]
@@ -99,7 +99,7 @@ then
 	cd $PRG
 	rm -rf trilinos-tmp
 	cd $CASA
-	tar cvfz $PRG/trilinos-serial-CI-build.tgz $PRG/trilinos
+	tar cfz $PRG/trilinos-serial-CI-build.tgz $PRG/trilinos
 fi
 
 
@@ -108,6 +108,7 @@ if [ ! -d $PRG/dealii ]
 then
 	echo "installing dealii"
 	DST_INST=$PRG/dealii 
+	cd $PRG
 	git clone https://github.com/dealii/dealii.git dealii-tmp
 	cd dealii-tmp
 	mkdir build
@@ -126,7 +127,7 @@ then
 	cd $PRG
 	rm -rf dealii-tmp
 	cd $CASA
-	tar cvfz $PRG/dealii-trilinos-serial-CI-build.tgz $PRG/dealii
+	tar cfz $PRG/dealii-trilinos-serial-CI-build.tgz $PRG/dealii
 fi
 
 
