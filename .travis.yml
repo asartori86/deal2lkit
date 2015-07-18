@@ -17,6 +17,8 @@ addons:
       - libblas-dev
       - liblapack-dev
       - libboost-dev
+      - openmpi-bin
+      - libopenmpi-dev
 
 language: cpp
 compiler: clang
