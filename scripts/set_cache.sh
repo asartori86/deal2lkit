@@ -14,9 +14,26 @@ if [ ! -d $PRG/cmake ]
 then
 	echo "installing cmake"
 	wget http://www.cmake.org/files/v3.3/cmake-3.3.0-rc3-Linux-x86_64.tar.gz > /dev/null
-	tar xzf cmake-3.3.0-rc3-Linux-x86_64.tar.gz -C $PRG > /dev/null
+	tar xzf cmake-3.3.0-rc3-Linux-x86_64.tar.gz -C $PRG
 	rm cmake-3.3.0-rc3-Linux-x86_64.tar.gz
 	mv $PRG/cmake-* $PRG/cmake
+fi
+
+# installing numdiff
+if [ ! -d $PRG/numdiff ]
+then
+	echo "installing numdiff"
+	mkdir $PRG/numdiff-tmp
+	cd $PRG/numdiff-tmp
+	wget http://mirror.lihnidos.org/GNU/savannah//numdiff/numdiff-5.8.1.tar.gz
+	tar xzf numdiff-5.8.1.tar.gz
+	rm numdiff-5.8.1.tar.gz
+	cd numdiff-5.8.1
+	DST_INST=$PRG/numdiff
+	./configure --prefix=$DST_INST 
+	make -j4 install 
+	cd $CASA
+	rm -rf $PRG/numdiff-tmp
 fi
 
 # # installing ninja
@@ -113,6 +130,7 @@ then
 	cd dealii-tmp
 	mkdir build
 	cd build
+  export PATH=$PRG/cmake/bin:$PATH
 	cmake \
 		-G Ninja \
 		-D CMAKE_INSTALL_PREFIX:PATH=$DST_INST \
@@ -120,7 +138,7 @@ then
 		-D CMAKE_CXX_FLAGS:STRING=-w \
 		-D CMAKE_C_COMPILER:PATH=/usr/bin/clang-3.6 \
 		-D CMAKE_C_FLAGS:STRING=-w \
-		.. > $CASA/dealii_cmake.log 2>&1
+		.. #> $CASA/dealii_cmake.log 2>&1
 
 	ninja -j3 
 	ninja -j4 install > /dev/null

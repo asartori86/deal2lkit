@@ -25,17 +25,17 @@ compiler: clang
 #env:
 #  - CXX=g++-4.8 PATH=$HOME/programs/cmake/bin:$HOME/programs/ninja:$HOME/programs/astyle/build/gcc/bin:$PATH TRILINOS_DIR=$HOME/programs/trilinos DEAL_II_DIR=$HOME/programs/dealii  
 
-before_install:
+install:
     - export PRG=$PWD/programs
     - export CASA=$PWD
     - export CXX=clang++-3.6
     - export PATH=$PWD/programs/cmake/bin:$PATH
-      #    - export PATH=$PWD/programs/ninja:$PATH
+      # - export PATH=$PWD/programs/ninja:$PATH
     - export TRILINOS_DIR=$PWD/programs/trilinos
     - export DEAL_II_DIR=$PWD/programs/dealii
     - export PATH=$PWD/programs/astyle/build/gcc/bin:$PATH
-install:
-  - ./scripts/set_cache.sh
+    - export PATH=$PRG/numdiff/bin:$PATH
+    - ./scripts/set_cache.sh
 
 script:
     - mkdir build
