@@ -25,6 +25,7 @@ addons:
       - openmpi-bin
       - libopenmpi-dev
       - gfortran
+      - libtbb-dev
 
 language: cpp
 compiler: clang
