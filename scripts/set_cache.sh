@@ -60,6 +60,33 @@ then
 	cd $CASA
 fi
 
+
+# dealii
+if [ ! -d $PRG/dealii ]
+then
+	echo "installing dealii"
+	DST_INST=$PRG/dealii 
+	cd $PRG
+	git clone https://github.com/dealii/dealii.git dealii-tmp
+	cd dealii-tmp
+	mkdir build
+	cd build
+  export PATH=$PRG/cmake/bin:$PATH
+  export PATH=$PWD/programs/ninja:$PATH
+	cmake \
+		-G Ninja \
+		-D CMAKE_INSTALL_PREFIX:PATH=$DST_INST \
+		-D CMAKE_CXX_FLAGS:STRING=-w \
+		-D DEAL_II_WITH_MPI=OFF \
+		.. #> $CASA/dealii_cmake.log 2>&1
+	ninja -j3 
+	ninja -j4 install > /dev/null
+	cd $PRG
+	rm -rf dealii-tmp
+	cd $CASA
+	tar cfz $PRG/dealii-trilinos-serial-CI-build.tgz $PRG/dealii
+fi
+
 # trilinos
 if [ ! -d $PRG/trilinos ]
 then
@@ -117,33 +144,6 @@ then
 	rm -rf trilinos-tmp
 	cd $CASA
 	tar cfz $PRG/trilinos-serial-CI-build.tgz $PRG/trilinos
-fi
-
-
-# dealii
-if [ ! -d $PRG/dealii ]
-then
-	echo "installing dealii"
-	DST_INST=$PRG/dealii 
-	cd $PRG
-	git clone https://github.com/dealii/dealii.git dealii-tmp
-	cd dealii-tmp
-	mkdir build
-	cd build
-  export PATH=$PRG/cmake/bin:$PATH
-  export PATH=$PWD/programs/ninja:$PATH
-	cmake \
-		-G Ninja \
-		-D CMAKE_INSTALL_PREFIX:PATH=$DST_INST \
-		-D CMAKE_CXX_FLAGS:STRING=-w \
-		-D DEAL_II_WITH_MPI=OFF \
-		.. #> $CASA/dealii_cmake.log 2>&1
-	ninja -j3 
-	ninja -j4 install > /dev/null
-	cd $PRG
-	rm -rf dealii-tmp
-	cd $CASA
-	tar cfz $PRG/dealii-trilinos-serial-CI-build.tgz $PRG/dealii
 fi
 
 

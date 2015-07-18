@@ -13,6 +13,11 @@ addons:
       - ubuntu-toolchain-r-test
       - llvm-toolchain-precise-3.6
     packages:
+      - build-essential
+      - autotools-dev
+      - autoconf
+      - automake
+      - autogen
       - clang-3.6
       - libblas-dev
       - liblapack-dev
