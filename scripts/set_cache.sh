@@ -30,7 +30,7 @@ then
 	rm numdiff-5.8.1.tar.gz
 	cd numdiff-5.8.1
 	DST_INST=$PRG/numdiff
-	./configure --prefix=$DST_INST 
+	./configure --prefix=$DST_INST > /dev/null
 	make -j4 install > /dev/null
 	cd $CASA
 	rm -rf $PRG/numdiff-tmp
