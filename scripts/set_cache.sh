@@ -60,6 +60,36 @@ then
 	cd $CASA
 fi
 
+rm -rf $PRG/petsc > /dev/null 2>&1
+
+# petsc
+if [ ! -d $PRG/petsc ]
+then
+	echo "installing petsc"
+	cd $PRG
+	git clone -b maint https://bitbucket.org/petsc/petsc petsc
+	export PETSC_ARCH=arch
+	cd petsc
+	./configure \
+		--with-debugging=0 \
+		--with-shared-libraries \
+		--download-mpi \
+	  --download-fblas-lapack 
+	#	--download-parmetis \
+	#	--download-metis \
+	#	--download-hypre \
+	#	--download-mumps \
+	#	--download-scalapack \
+	#	--download-sundials \
+	#	--download-superlu \
+	#	--download-superlu_dist \
+	#	--download-hdf5
+	make PETSC_DIR=$PWD PETSC_ARCH=arch all
+	make PETSC_DIR=$PWD PETSC_ARCH=arch test
+
+fi
+
+
 # trilinos
 if [ ! -d $PRG/trilinos ]
 then
@@ -144,16 +174,5 @@ then
 	rm -rf dealii-tmp
 	cd $CASA
 	tar cfz $PRG/dealii-trilinos-serial-CI-build.tgz $PRG/dealii
-fi
-
-
-# petsc
-if [ ! -d programs/petsc ]
-then
-	echo "installing petsc"
-	which mpirun
-	which mpicc
-#	cd programs
-#	git clone -b maint https://bitbucket.org/petsc/petsc petsc
 fi
 
