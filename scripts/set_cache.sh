@@ -92,6 +92,8 @@ then
 	make PETSC_DIR=$PWD PETSC_ARCH=arch install
 	export PETSC_DIR=$PRG/petsc
 	export PETSC_ARCH=
+	cd $CASA 
+	rm -rf $PRG/petsc-tmp
 fi
 
 
@@ -167,12 +169,14 @@ then
 	cd build
   export PATH=$PRG/cmake/bin:$PATH
   export PATH=$PWD/programs/ninja:$PATH
+	export PETSC_DIR=$PRG/petsc
+	export PETSC_ARCH=
 	cmake \
 		-G Ninja \
 		-D CMAKE_INSTALL_PREFIX:PATH=$DST_INST \
 		-D CMAKE_CXX_FLAGS:STRING=-w \
-		-D DEAL_II_WITH_MPI:BOOL=OFF \
-		-D DEAL_II_WITH_THREADS:BOOL=OFF \
+		-D DEAL_II_WITH_MPI:BOOL=ON	\
+		-D DEAL_II_WITH_THREADS:BOOL=ON \
 		.. #> $CASA/dealii_cmake.log 2>&1
 	ninja -j3 
 	ninja -j4 install > /dev/null
