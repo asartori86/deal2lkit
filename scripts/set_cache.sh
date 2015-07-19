@@ -143,11 +143,11 @@ then
 		-D Trilinos_ENABLE_TrilinosCouplings:BOOL=ON \
 		-D Trilinos_ENABLE_Fortran:BOOL=OFF \
 		-D MPI_BASE_DIR:PATH=$PETSC_DIR \
+		-D CMAKE_CXX_COMPILER:PATH=/usr/bin/clang++-3.6 \
+		-D CMAKE_CXX_FLAGS:STRING=-w \
+		-D CMAKE_C_COMPILER:PATH=/usr/bin/clang-3.6 \
+		-D CMAKE_C_FLAGS:STRING=-w \
 		.. #> $CASA/trilinos_cmake.log 2>&1
-		#-D CMAKE_CXX_COMPILER:PATH=/usr/bin/clang++-3.6 \
-		#-D CMAKE_CXX_FLAGS:STRING=-w \
-		#-D CMAKE_C_COMPILER:PATH=/usr/bin/clang-3.6 \
-		#-D CMAKE_C_FLAGS:STRING=-w \
 
 	ninja -j4 
 	ninja -j4 install > /dev/null
