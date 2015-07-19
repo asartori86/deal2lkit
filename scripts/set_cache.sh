@@ -73,7 +73,7 @@ then
 	./configure \
 		--with-debugging=0 \
 		--with-shared-libraries \
-		--download-mpi \
+		--download-mpich \
 	  --download-fblas-lapack 
 	#	--download-parmetis \
 	#	--download-metis \
