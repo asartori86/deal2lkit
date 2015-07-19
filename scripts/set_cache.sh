@@ -65,16 +65,20 @@ rm -rf $PRG/petsc > /dev/null 2>&1
 # petsc
 if [ ! -d $PRG/petsc ]
 then
+	unset PETSC_DIR
+	unset PETSC_ARCH
 	echo "installing petsc"
 	cd $PRG
-	git clone -b maint https://bitbucket.org/petsc/petsc petsc
+	git clone -b maint https://bitbucket.org/petsc/petsc petsc-tmp
 	export PETSC_ARCH=arch
-	cd petsc
+	DST=$PRG/petsc
+	cd petsc-tmp
 	./configure \
+		--prefix=$DST \
 		--with-debugging=0 \
 		--with-shared-libraries \
 		--download-mpich \
-	  --download-fblas-lapack 
+	  --download-fblas-lapack 1> /dev/null 2>&1
 	#	--download-parmetis \
 	#	--download-metis \
 	#	--download-hypre \
@@ -85,8 +89,9 @@ then
 	#	--download-superlu_dist \
 	#	--download-hdf5
 	make PETSC_DIR=$PWD PETSC_ARCH=arch all
-	make PETSC_DIR=$PWD PETSC_ARCH=arch test
-
+	make PETSC_DIR=$PWD PETSC_ARCH=arch install
+	export PETSC_DIR=$PRG/petsc
+	export PETSC_ARCH=
 fi
 
 
@@ -106,7 +111,7 @@ then
 		-D CMAKE_BUILD_TYPE:STRING=RELEASE \
 		-D TPL_ENABLE_Boost:BOOL=OFF \
 		-D TPL_ENABLE_BoostLib:BOOL=OFF \
-		-D TPL_ENABLE_MPI:BOOL=OFF \
+		-D TPL_ENABLE_MPI:BOOL=ON \
 		-D TPL_ENABLE_Netcdf:BOOL=OFF \
 		-D CMAKE_INSTALL_PREFIX:PATH=$DST_INST \
 		-D Trilinos_ENABLE_OpenMP:BOOL=OFF \
@@ -135,11 +140,12 @@ then
 		-D Trilinos_ENABLE_Thyra:BOOL=ON \
 		-D Trilinos_ENABLE_TrilinosCouplings:BOOL=ON \
 		-D Trilinos_ENABLE_Fortran:BOOL=OFF \
-		-D CMAKE_CXX_COMPILER:PATH=/usr/bin/clang++-3.6 \
-		-D CMAKE_CXX_FLAGS:STRING=-w \
-		-D CMAKE_C_COMPILER:PATH=/usr/bin/clang-3.6 \
-		-D CMAKE_C_FLAGS:STRING=-w \
-		.. > $CASA/trilinos_cmake.log 2>&1
+		-D MPI_BASE_DIR:PATH=$PETSC_DIR \
+		.. #> $CASA/trilinos_cmake.log 2>&1
+		#-D CMAKE_CXX_COMPILER:PATH=/usr/bin/clang++-3.6 \
+		#-D CMAKE_CXX_FLAGS:STRING=-w \
+		#-D CMAKE_C_COMPILER:PATH=/usr/bin/clang-3.6 \
+		#-D CMAKE_C_FLAGS:STRING=-w \
 
 	ninja -j4 
 	ninja -j4 install > /dev/null
