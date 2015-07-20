@@ -101,9 +101,11 @@ then
 	echo "installing trilinos"
 	DST_INST=$PRG/trilinos
   export PATH=$PRG/cmake/bin:$PATH
-	cd $PRG
-	git clone -b trilinos-release-12-0-branch https://github.com/trilinos/trilinos.git trilinos-tmp
-	cd trilinos-tmp
+	mkdir $PRG/trilinos-tmp
+	cd $PRG/trilinos-tmp
+  wget http://trilinos.csbsju.edu/download/files/trilinos-12.0.1-Source.tar.gz
+	tar xzf trilinos-12.0.1-Source.tar.gz > /dev/null
+	cd trilinos-12.0.1-Source
 	mkdir build
 	cd build
 	cmake \
@@ -149,9 +151,8 @@ then
 
 	ninja -j4 
 	ninja -j4 install > /dev/null
-	cd $PRG
-	rm -rf trilinos-tmp
 	cd $CASA
+	rm -rf $PRG/trilinos-tmp
 	tar cfz $PRG/trilinos-serial-CI-build.tgz $PRG/trilinos
 fi
 
