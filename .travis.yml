@@ -1,6 +1,7 @@
 sudo : false
 
 cache: 
+  - apt
   directories:
     - programs
 

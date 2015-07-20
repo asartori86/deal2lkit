@@ -76,7 +76,7 @@ then
 		--with-debugging=0 \
 		--with-shared-libraries \
 		--download-mpich \
-	  --download-fblas-lapack 1> /dev/null 2>&1
+	  --download-fblas-lapack > /dev/null 2>&1
 	#	--download-parmetis \
 	#	--download-metis \
 	#	--download-hypre \
@@ -86,8 +86,8 @@ then
 	#	--download-superlu \
 	#	--download-superlu_dist \
 	#	--download-hdf5
-	make PETSC_DIR=$PWD PETSC_ARCH=arch all
-	make PETSC_DIR=$PWD PETSC_ARCH=arch install
+	make PETSC_DIR=$PWD PETSC_ARCH=arch all > /dev/null 2>&1
+	make PETSC_DIR=$PWD PETSC_ARCH=arch install > /dev/null 2>&1
 	export PETSC_DIR=$PRG/petsc
 	export PETSC_ARCH=
 	cd $CASA 
@@ -149,7 +149,7 @@ then
 		-D CMAKE_C_FLAGS:STRING=-w \
 		.. #> $CASA/trilinos_cmake.log 2>&1
 
-	ninja -j3 
+	ninja -j2 
 	ninja -j4 install > /dev/null
 	cd $CASA
 	rm -rf $PRG/trilinos-tmp
