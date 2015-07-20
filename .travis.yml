@@ -1,9 +1,11 @@
 sudo : false
 
 cache: 
-  apt
   directories:
     - programs
+
+
+cache:  apt
 
 notifications:
   email: false
