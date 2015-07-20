@@ -102,7 +102,7 @@ then
 	DST_INST=$PRG/trilinos
   export PATH=$PRG/cmake/bin:$PATH
 	cd $PRG
-	git clone https://github.com/trilinos/trilinos.git trilinos-tmp
+	git clone -b trilinos-release-12-0-branch https://github.com/trilinos/trilinos.git trilinos-tmp
 	cd trilinos-tmp
 	mkdir build
 	cd build
