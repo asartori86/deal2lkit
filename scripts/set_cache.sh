@@ -60,8 +60,6 @@ then
 	cd $CASA
 fi
 
-rm -rf $PRG/petsc > /dev/null 2>&1
-
 # petsc
 if [ ! -d $PRG/petsc ]
 then

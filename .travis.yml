@@ -13,7 +13,8 @@ addons:
       - ubuntu-toolchain-r-test
       - llvm-toolchain-precise-3.6
     packages:
-      - build-essential
+      #      - build-essential
+      - llvm-3.6-dev
       - libblas-dev
       - liblapack-dev
       - libboost-dev
