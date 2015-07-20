@@ -149,7 +149,7 @@ then
 		-D CMAKE_C_FLAGS:STRING=-w \
 		.. #> $CASA/trilinos_cmake.log 2>&1
 
-	ninja -j2 
+	ninja -j1 
 	ninja -j4 install > /dev/null
 	cd $CASA
 	rm -rf $PRG/trilinos-tmp
