@@ -31,7 +31,7 @@ int main (int argc, char *argv[])
 #endif
       std::system("rm -rf dsfas*");
       deallog << "--> " << create_directory("dsfas000") << std::endl;
-      deallog << "--> " << dir_exists("dsfas001") << std::endl;
+      deallog << "--> " << dir_exists("dsfas000") << std::endl;
 #ifdef DEAL_II_WITH_MPI
     }
 #endif

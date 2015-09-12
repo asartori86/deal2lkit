@@ -31,11 +31,8 @@ int main (int argc, char *argv[])
 #endif
       std::system("rm -rf dsfas*");
       deallog << "--> " << create_directory("dsfas000") << std::endl;
-      deallog << "--> " << create_directory("dsfas001") << std::endl;
-      deallog << "--> " << create_directory("dsfas002") << std::endl;
       deallog << "--> " << get_next_available_directory_name("dsfas",3) << std::endl;
-      deallog << "--> " << create_directory(get_next_available_directory_name("dsfas",3)) << std::endl;
-      deallog << "--> " << create_directory("dsfas004") << std::endl;
+      deallog << "--> " << create_directory("dsfas001") << std::endl;
       deallog << "--> " << get_next_available_directory_name("dsfas",3) << std::endl;
 #ifdef DEAL_II_WITH_MPI
     }
