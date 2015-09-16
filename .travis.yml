@@ -1,10 +1,13 @@
 sudo: false
+
 cache:
   apt: true
   directories:
   - programs
+
 notifications:
   email: false
+
 addons:
   apt:
     sources:
@@ -19,6 +22,7 @@ addons:
     - gfortran
     - doxygen
     - graphviz
+
 language: cpp
 compiler: clang
 install:
