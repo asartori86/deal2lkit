@@ -63,7 +63,7 @@ subsection Forcing term
 end
 subsection IDA Solver Parameters
   set Absolute error tolerance                      = 1e-3
-  set Final time                                    = 30
+  set Final time                                    = 20
   set Ignore algebraic terms for error computations = true
   set Initial condition Newton max iterations       = 5
   set Initial condition Newton parameter            = 0.33
@@ -74,7 +74,7 @@ subsection IDA Solver Parameters
   set Maximum order of BDF                          = 5
   set Min step size                                 = 5e-5
   set Relative error tolerance                      = 1e-3
-  set Seconds between each output                   = 1e-2
+  set Seconds between each output                   = 1e-1
   set Use local tolerances                          = false
 end
 subsection Initial solution
@@ -137,14 +137,14 @@ subsection Output Parameters
 end
 subsection Stokes<2>
   set Adaptive refinement            = true
-  set Bottom fraction                = 0.2
+  set Bottom fraction                = 0.05
   set Initial global refinement      = 3
   set Maximum number of cells        = -1000
   set Maximum number of time steps   = 10000
   set Refine mesh during transient   = false
   set Threshold for restart solver   = 1e-2
   set Timer output file              = timer.txt
-  set Top fraction                   = 0.2
+  set Top fraction                   = 0.3
   set Use direct solver if available = true
   set mu                             = 1.
 end

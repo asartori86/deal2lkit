@@ -155,36 +155,39 @@ void Stokes<dim>::declare_parameters (ParameterHandler &prm)
 template <int dim>
 void Stokes<dim>::make_grid_fe()
 {
-  triangulation = SP(pgg.distributed(comm));
-  dof_handler = SP(new DoFHandler<dim>(*triangulation));
   fe=SP(fe_builder());
+  triangulation = SP(pgg.distributed(comm));
 
-const Point<2> center (0,0);
-const double inner_radius = 0.2;
+  const Point<2> center (0,0);
+  const double inner_radius = 0.2;
 
-const SphericalManifold<2> manifold_description(center);
-parallel::distributed::Triangulation<2>::active_cell_iterator
+  static const SphericalManifold<2> manifold_description(center);
+  parallel::distributed::Triangulation<2>::active_cell_iterator
   cell = triangulation->begin_active(),
-       endc = triangulation->end();
-for (; cell!=endc; ++cell)
-{
-  for (unsigned int v=0;
-      v < GeometryInfo<2>::faces_per_cell;
-      ++v)
-  {
-    const double distance_from_center
-      = center.distance (cell->face(v)->center());
-    if (std::fabs(distance_from_center) < inner_radius + 1e-6)
+  endc = triangulation->end();
+  for (; cell!=endc; ++cell)
     {
-      cell->face(v)->set_manifold_id (99);
-      break;
+      if (cell->is_locally_owned())
+        {
+          for (unsigned int v=0;
+               v < GeometryInfo<2>::faces_per_cell;
+               ++v)
+            {
+              const double distance_from_center
+                = center.distance (cell->face(v)->center());
+              if (std::fabs(distance_from_center) < inner_radius + 1e-6)
+                {
+                  cell->face(v)->set_manifold_id (99);
+                  break;
+                }
+            }
+          triangulation->set_manifold (99, manifold_description);
+        }
     }
-  }
-  triangulation->set_manifold (99, manifold_description);
-}
 
-
+  MPI_Barrier(comm);
   triangulation->refine_global (initial_global_refinement);
+  dof_handler = SP(new DoFHandler<dim>(*triangulation));
 }
 
 
@@ -374,9 +377,9 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
                                           phi_u[j]
                                           +
                                           mu*sym_grads_phi_u[i] * sym_grads_phi_u[j]
-                                          - 
+                                          -
                                           (div_phi_u[i] * phi_p[j])
-                                          - 
+                                          -
                                           (phi_p[i] * div_phi_u[j])
 
                                         )*fe_values.JxW(q_point);
@@ -567,7 +570,7 @@ int Stokes<dim>::residual (const double t,
 
                                  +
                                  mu*scalar_product(grad_sols[q_point],
-                                                fe_values[u].symmetric_gradient(i,q_point))
+                                                   fe_values[u].symmetric_gradient(i,q_point))
 
                                  -
                                  ps[q_point] *
@@ -807,25 +810,25 @@ int Stokes<dim>::solve_jacobian_system (const double t,
   auto S_inv_refined = inverse_operator(jacobian_op, solver_refined, jacobian_preconditioner_op);
   unsigned int n_iterations = 0;
   try
-  {
-    S_inv.vmult(dst, src);
-    n_iterations = solver_control.last_step();
-  }
+    {
+      S_inv.vmult(dst, src);
+      n_iterations = solver_control.last_step();
+    }
   catch ( SolverControl::NoConvergence )
-  {
-    try
     {
-      S_inv_refined.vmult(dst, src);
-      n_iterations = (solver_control.last_step() +
-          solver_control_refined.last_step());
-    }
-    catch ( SolverControl::NoConvergence )
-    {
-      computing_timer.exit_section();
-      return 1;
-    }
+      try
+        {
+          S_inv_refined.vmult(dst, src);
+          n_iterations = (solver_control.last_step() +
+                          solver_control_refined.last_step());
+        }
+      catch ( SolverControl::NoConvergence )
+        {
+          computing_timer.exit_section();
+          return 1;
+        }
 
-  }
+    }
   pcout << std::endl
         << " iterations:                           " <<  n_iterations
         << std::endl;
