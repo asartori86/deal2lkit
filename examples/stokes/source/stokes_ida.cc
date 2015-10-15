@@ -158,6 +158,32 @@ void Stokes<dim>::make_grid_fe()
   triangulation = SP(pgg.distributed(comm));
   dof_handler = SP(new DoFHandler<dim>(*triangulation));
   fe=SP(fe_builder());
+
+const Point<2> center (0,0);
+const double inner_radius = 0.2;
+
+const SphericalManifold<2> manifold_description(center);
+parallel::distributed::Triangulation<2>::active_cell_iterator
+  cell = triangulation->begin_active(),
+       endc = triangulation->end();
+for (; cell!=endc; ++cell)
+{
+  for (unsigned int v=0;
+      v < GeometryInfo<2>::faces_per_cell;
+      ++v)
+  {
+    const double distance_from_center
+      = center.distance (cell->face(v)->center());
+    if (std::fabs(distance_from_center) < inner_radius + 1e-6)
+    {
+      cell->face(v)->set_manifold_id (99);
+      break;
+    }
+  }
+  triangulation->set_manifold (99, manifold_description);
+}
+
+
   triangulation->refine_global (initial_global_refinement);
 }
 

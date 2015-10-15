@@ -63,7 +63,7 @@ subsection Forcing term
 end
 subsection IDA Solver Parameters
   set Absolute error tolerance                      = 1e-3
-  set Final time                                    = 10
+  set Final time                                    = 30
   set Ignore algebraic terms for error computations = true
   set Initial condition Newton max iterations       = 5
   set Initial condition Newton parameter            = 0.33
@@ -141,10 +141,10 @@ subsection Stokes<2>
   set Initial global refinement      = 3
   set Maximum number of cells        = -1000
   set Maximum number of time steps   = 10000
-  set Refine mesh during transient   = true
+  set Refine mesh during transient   = false
   set Threshold for restart solver   = 1e-2
   set Timer output file              = timer.txt
   set Top fraction                   = 0.2
   set Use direct solver if available = true
-  set mu                             = 10.
+  set mu                             = 1.
 end
