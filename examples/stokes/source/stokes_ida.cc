@@ -144,6 +144,12 @@ void Stokes<dim>::declare_parameters (ParameterHandler &prm)
                   "Bottom fraction",
                   "0.1",
                   Patterns::Double(0.0));
+
+  add_parameter(  prm,
+                  &mu,
+                  "mu",
+                  "1.",
+                  Patterns::Double(0.0));
 }
 
 template <int dim>
@@ -341,17 +347,21 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
                                           alpha*phi_u[i] *
                                           phi_u[j]
                                           +
-                                          sym_grads_phi_u[i] * sym_grads_phi_u[j]
-                                          - (div_phi_u[i] * phi_p[j])
-                                          - (phi_p[i] * div_phi_u[j])
+                                          mu*sym_grads_phi_u[i] * sym_grads_phi_u[j]
+                                          - 
+                                          (div_phi_u[i] * phi_p[j])
+                                          - 
+                                          (phi_p[i] * div_phi_u[j])
+
                                         )*fe_values.JxW(q_point);
 
                     cell_prec(i,j) += (
-                                        alpha*phi_u[i]*phi_u[j]
+                                        (1.0/alpha)*phi_u[i]*phi_u[j]
                                         +
-                                        scalar_product(grads_phi_u[i],grads_phi_u[j])
+                                        mu*scalar_product(grads_phi_u[i],grads_phi_u[j])
                                         +
-                                        phi_p[i]*phi_p[j]
+                                        (1./mu)*phi_p[i]*phi_p[j]
+
                                       )*fe_values.JxW(q_point);
                   }
 
@@ -530,7 +540,7 @@ int Stokes<dim>::residual (const double t,
                                  fe_values[u].value(i,q_point)
 
                                  +
-                                 scalar_product(grad_sols[q_point],
+                                 mu*scalar_product(grad_sols[q_point],
                                                 fe_values[u].symmetric_gradient(i,q_point))
 
                                  -
@@ -640,6 +650,8 @@ bool Stokes<dim>::solver_should_restart (const double t,
       VEC tmp_c(solution);
       constraints.distribute(tmp_c);
       distributed_solution = tmp_c;
+      std::vector<bool> mask(dim+1,true);
+      mask[dim] = false;
 
       Vector<float> estimated_error_per_cell (triangulation->n_active_cells());
       KellyErrorEstimator<dim>::estimate (*dof_handler,
@@ -647,9 +659,9 @@ bool Stokes<dim>::solver_should_restart (const double t,
                                           typename FunctionMap<dim>::type(),
                                           distributed_solution,
                                           estimated_error_per_cell,
-                                          ComponentMask(),
+                                          mask,
                                           0,
-                                          0,
+                                          numbers::invalid_unsigned_int,
                                           triangulation->locally_owned_subdomain());
 
 
@@ -769,16 +781,25 @@ int Stokes<dim>::solve_jacobian_system (const double t,
   auto S_inv_refined = inverse_operator(jacobian_op, solver_refined, jacobian_preconditioner_op);
   unsigned int n_iterations = 0;
   try
-    {
-      S_inv.vmult(dst, src);
-      n_iterations = solver_control.last_step();
-    }
+  {
+    S_inv.vmult(dst, src);
+    n_iterations = solver_control.last_step();
+  }
   catch ( SolverControl::NoConvergence )
+  {
+    try
     {
       S_inv_refined.vmult(dst, src);
       n_iterations = (solver_control.last_step() +
-                      solver_control_refined.last_step());
+          solver_control_refined.last_step());
     }
+    catch ( SolverControl::NoConvergence )
+    {
+      computing_timer.exit_section();
+      return 1;
+    }
+
+  }
   pcout << std::endl
         << " iterations:                           " <<  n_iterations
         << std::endl;

@@ -214,6 +214,7 @@ private:
   int max_cells;
   double top_fraction;
   double bottom_fraction;
+  double mu;
 
   shared_ptr<TrilinosWrappers::PreconditionAMG>    Amg_preconditioner;
   shared_ptr<TrilinosWrappers::PreconditionJacobi> Mp_preconditioner;
