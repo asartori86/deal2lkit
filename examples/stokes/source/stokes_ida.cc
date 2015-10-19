@@ -309,6 +309,28 @@ void Stokes<dim>::setup_dofs (const bool &first_run)
 
 
 template <int dim>
+void Stokes<dim>::update_constraints (const double &t)
+{
+  dirichlet_bcs.set_time(t);
+  dirichlet_dot.set_time(t);
+  exact_solution.set_time(t);
+  constraints.clear();
+  DoFTools::make_hanging_node_constraints (*dof_handler,
+      constraints);
+
+  dirichlet_bcs.interpolate_boundary_values(*dof_handler, constraints);
+
+  constraints.close ();
+  constraints_dot.clear();
+
+  DoFTools::make_hanging_node_constraints (*dof_handler,
+      constraints_dot);
+
+  dirichlet_dot.interpolate_boundary_values(*dof_handler, constraints_dot);
+  constraints_dot.close ();
+}
+
+template <int dim>
 void Stokes<dim>::assemble_jacobian_matrix(const double t,
                                            const VEC &solution,
                                            const VEC &solution_dot,
@@ -319,23 +341,8 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
   computing_timer.enter_section ("   Assemble jacobian matrix");
   jacobian_matrix = 0;
   jacobian_preconditioner_matrix = 0;
-  dirichlet_bcs.set_time(t);
-  dirichlet_dot.set_time(t);
-  exact_solution.set_time(t);
-  constraints.clear();
-  DoFTools::make_hanging_node_constraints (*dof_handler,
-                                           constraints);
 
-  dirichlet_bcs.interpolate_boundary_values(*dof_handler, constraints);
-
-  constraints.close ();
-  constraints_dot.clear();
-
-  DoFTools::make_hanging_node_constraints (*dof_handler,
-                                           constraints_dot);
-
-  dirichlet_dot.interpolate_boundary_values(*dof_handler, constraints_dot);
-  constraints_dot.close ();
+  update_constraints(t);
 
   VEC tmp(solution);
   VEC tmp_dot(solution_dot);
@@ -346,7 +353,7 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
 
   const QGauss<dim>  quadrature_formula(fe->degree+1);
 
-  FEValues<dim> fe_values (*fe, quadrature_formula,
+  FEValues<dim> fe_values (*mapping,*fe, quadrature_formula,
                            update_values    |  update_gradients |
                            update_quadrature_points |
                            update_JxW_values);
@@ -428,6 +435,7 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
         constraints.distribute_local_to_global (cell_prec,
                                                 local_dof_indices,
                                                 jacobian_preconditioner_matrix);
+
         constraints_dot.distribute_local_to_global (cell_matrix,
                                                 local_dof_indices,
                                                 jacobian_matrix);
@@ -519,23 +527,9 @@ int Stokes<dim>::residual (const double t,
                            VEC &dst)
 {
   computing_timer.enter_section ("Residual");
-  dirichlet_bcs.set_time(t);
-  dirichlet_dot.set_time(t);
-  exact_solution.set_time(t);
-  constraints.clear();
-  DoFTools::make_hanging_node_constraints (*dof_handler,
-                                           constraints);
 
-  dirichlet_bcs.interpolate_boundary_values(*dof_handler, constraints);
+  update_constraints(t);
 
-  constraints.close ();
-  constraints_dot.clear();
-
-  DoFTools::make_hanging_node_constraints (*dof_handler,
-                                           constraints_dot);
-
-  dirichlet_dot.interpolate_boundary_values(*dof_handler, constraints_dot);
-  constraints_dot.close ();
 
   VEC tmp(solution);
   VEC tmp_dot(solution_dot);
@@ -673,25 +667,12 @@ void Stokes<dim>::output_step(const double t,
                               const double /* h */ )
 {
   computing_timer.enter_section ("Postprocessing");
+
+  update_constraints(t);
+
   VEC tmp(solution);
   VEC tmp_dot(solution_dot);
-  dirichlet_bcs.set_time(t);
-  dirichlet_dot.set_time(t);
-  exact_solution.set_time(t);
-  constraints.clear();
-  DoFTools::make_hanging_node_constraints (*dof_handler,
-                                           constraints);
 
-  dirichlet_bcs.interpolate_boundary_values(*dof_handler, constraints);
-
-  constraints.close ();
-  constraints_dot.clear();
-
-  DoFTools::make_hanging_node_constraints (*dof_handler,
-                                           constraints_dot);
-
-  dirichlet_dot.interpolate_boundary_values(*dof_handler, constraints_dot);
-  constraints_dot.close ();
   constraints.distribute(tmp);
   constraints_dot.distribute(tmp_dot);
   distributed_solution = tmp;
@@ -731,6 +712,10 @@ bool Stokes<dim>::solver_should_restart (const double t,
       double mpi_max_kelly=0;
 
       computing_timer.enter_section ("   Compute error estimator");
+
+
+//  update_constraints(t);
+
      VEC tmp_c(solution);
      constraints.distribute(tmp_c);
      distributed_solution = tmp_c;
@@ -743,13 +728,13 @@ bool Stokes<dim>::solver_should_restart (const double t,
                                           typename FunctionMap<dim>::type(),
                                           distributed_solution,
                                           estimated_error_per_cell,
-                                          mask,
+                                          ComponentMask(mask),
                                           0,
                                           0,
                                           triangulation->locally_owned_subdomain());
 
 
-      max_kelly = estimated_error_per_cell.linfty_norm();
+      max_kelly = estimated_error_per_cell.l2_norm();
       max_kelly = Utilities::MPI::max(max_kelly, comm);
 
       if (max_kelly > kelly_threshold)
@@ -798,25 +783,12 @@ bool Stokes<dim>::solver_should_restart (const double t,
 
           solution = tmp;
           solution_dot = tmp_dot;
-  dirichlet_bcs.set_time(t);
-  dirichlet_dot.set_time(t);
-  exact_solution.set_time(t);
-  constraints.clear();
-  DoFTools::make_hanging_node_constraints (*dof_handler,
-                                           constraints);
 
-  dirichlet_bcs.interpolate_boundary_values(*dof_handler, constraints);
+          update_constraints(t);
 
-  constraints.close ();
-  constraints_dot.clear();
-
-  DoFTools::make_hanging_node_constraints (*dof_handler,
-                                           constraints_dot);
-
-  dirichlet_dot.interpolate_boundary_values(*dof_handler, constraints_dot);
-  constraints_dot.close ();
           constraints.distribute(solution);
           constraints_dot.distribute(solution_dot);
+  output_step(t,solution,solution_dot,step_number+900,h);
           computing_timer.exit_section();
           MPI::COMM_WORLD.Barrier();
           return true;
@@ -859,6 +831,7 @@ int Stokes<dim>::solve_jacobian_system (const double t,
                                         VEC &dst) const
 {
   computing_timer.enter_section ("   Solve system");
+//  update_constraints(t);
   set_constrained_dofs_to_zero(dst);
 
   const double solver_tolerance = 1e-8;

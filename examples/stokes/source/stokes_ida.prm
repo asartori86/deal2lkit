@@ -4,14 +4,14 @@
 # DEAL_II_GIT_BRANCH=   master
 # DEAL_II_GIT_SHORTREV= a5fb9e5
 subsection Dirichlet BCs
-  set IDs and component masks = 1=u % 5=u %2=p %3=u.N % 4=u.N
-  set IDs and expressions     = 1=(t<.1?t*10.:1.);0;0 % 2=0;0;0 % 5=0;0;0 % 3=0;0;0 % 4=0;0;0
+  set IDs and component masks = 1=u % 5=u %2=p #%3=u % 4=u.N
+  set IDs and expressions     = 1=(t<.1?t*10.:1.);0;0 % 2=0;0;0 % 5=0;0;0 #% 3=0;0;0 % 4=0;0;0
   set Known component names   = u,u,p
   set Used constants          = k=1e-5
 end
 subsection Dirichlet dot
-  set IDs and component masks = 1=u % 5=u %2=p %3=u.N % 4=u.N
-  set IDs and expressions     = 1=(t<.1?10.:0.);0;0 % 2=0;0;0 % 5=0;0;0 % 3=0;0;0 % 4=0;0;0
+  set IDs and component masks = 1=u % 5=u %2=p #%3=u.N % 4=u.N
+  set IDs and expressions     = 1=(t<.1?10.:0.);0;0 % 2=0;0;0 % 5=0;0;0 #% 3=0;0;0 % 4=0;0;0
   set Known component names   = u,u,p
   set Used constants          = 
 end
@@ -80,7 +80,7 @@ subsection IDA Solver Parameters
   set Maximum order of BDF                          = 1
   set Min step size                                 = 5e-5
   set Relative error tolerance                      = 1e-3
-  set Seconds between each output                   = 1e-2
+  set Seconds between each output                   = 1e-1
   set Use local tolerances                          = false
 end
 subsection Initial solution
@@ -144,13 +144,13 @@ end
 subsection Stokes<2>
   set Adaptive refinement            = false
   set Bottom fraction                = 0.05
-  set Initial global refinement      = 0
+  set Initial global refinement      = 2
   set Maximum number of cells        = -1000
   set Maximum number of time steps   = 10000
   set Refine mesh during transient   = true
-  set Threshold for restart solver   = 1e-1
+  set Threshold for restart solver   = 4e-1
   set Timer output file              = timer.txt
-  set Top fraction                   = 0.4
+  set Top fraction                   = 0.3
   set Use direct solver if available = true
   set mu                             = 1.
 end

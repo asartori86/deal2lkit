@@ -146,6 +146,8 @@ private:
 
   void set_constrained_dofs_to_zero(VEC &v) const;
 
+  void update_constraints(const double &t);
+
   const MPI_Comm &comm;
 
   unsigned int initial_global_refinement;
