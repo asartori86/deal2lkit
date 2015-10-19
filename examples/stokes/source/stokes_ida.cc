@@ -74,6 +74,7 @@ Stokes<dim>::Stokes (const MPI_Comm &communicator)
   initial_solution("Initial solution"),
   initial_solution_dot("Initial solution_dot"),
   dirichlet_bcs("Dirichlet BCs", "u,u,p", "0=u"),
+  dirichlet_dot("Dirichlet dot", "u,u,p", "0=u"),
 
   data_out("Output Parameters", "vtu"),
   dae(*this)
@@ -201,7 +202,7 @@ void Stokes<dim>::setup_dofs (const bool &first_run)
   dof_handler->distribute_dofs (*fe);
   DoFRenumbering::component_wise (*dof_handler, sub_blocks);
 
-  mapping = SP(new MappingQ<dim>(1));
+  mapping = SP(new MappingQ<dim>(2));
 
   dofs_per_block.clear();
   dofs_per_block.resize(fe_builder.n_blocks());
@@ -251,6 +252,15 @@ void Stokes<dim>::setup_dofs (const bool &first_run)
 
   dirichlet_bcs.interpolate_boundary_values(*dof_handler, constraints);
   constraints.close ();
+
+  constraints_dot.clear ();
+  constraints_dot.reinit (relevant_set);
+
+  DoFTools::make_hanging_node_constraints (*dof_handler,
+                                           constraints_dot);
+
+  dirichlet_dot.interpolate_boundary_values(*dof_handler, constraints_dot);
+  constraints_dot.close ();
 
   jacobian_matrix.clear();
   jacobian_matrix_sp.reinit(partitioning,partitioning,relevant_partitioning,comm);
@@ -304,10 +314,13 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
                                            const VEC &solution_dot,
                                            const double alpha)
 {
+  pcout << "alpha ----------------------------------------- " << alpha <<std::endl;
 
   computing_timer.enter_section ("   Assemble jacobian matrix");
   jacobian_matrix = 0;
+  jacobian_preconditioner_matrix = 0;
   dirichlet_bcs.set_time(t);
+  dirichlet_dot.set_time(t);
   exact_solution.set_time(t);
   constraints.clear();
   DoFTools::make_hanging_node_constraints (*dof_handler,
@@ -316,11 +329,20 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
   dirichlet_bcs.interpolate_boundary_values(*dof_handler, constraints);
 
   constraints.close ();
+  constraints_dot.clear();
+
+  DoFTools::make_hanging_node_constraints (*dof_handler,
+                                           constraints_dot);
+
+  dirichlet_dot.interpolate_boundary_values(*dof_handler, constraints_dot);
+  constraints_dot.close ();
 
   VEC tmp(solution);
+  VEC tmp_dot(solution_dot);
   constraints.distribute(tmp);
+  constraints_dot.distribute(tmp_dot);
   distributed_solution = tmp;
-  distributed_solution_dot = solution_dot;
+  distributed_solution_dot = tmp_dot;
 
   const QGauss<dim>  quadrature_formula(fe->degree+1);
 
@@ -385,9 +407,9 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
                                         )*fe_values.JxW(q_point);
 
                     cell_prec(i,j) += (
-                                        (1.0/alpha)*phi_u[i]*phi_u[j]
+                                        alpha*phi_u[i]*phi_u[j]
                                         +
-                                        mu*scalar_product(grads_phi_u[i],grads_phi_u[j])
+                                        mu*sym_grads_phi_u[i]*sym_grads_phi_u[j]
                                         +
                                         (1./mu)*phi_p[i]*phi_p[j]
 
@@ -404,6 +426,13 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
                                                 jacobian_matrix);
 
         constraints.distribute_local_to_global (cell_prec,
+                                                local_dof_indices,
+                                                jacobian_preconditioner_matrix);
+        constraints_dot.distribute_local_to_global (cell_matrix,
+                                                local_dof_indices,
+                                                jacobian_matrix);
+
+        constraints_dot.distribute_local_to_global (cell_prec,
                                                 local_dof_indices,
                                                 jacobian_preconditioner_matrix);
       }
@@ -445,40 +474,40 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
 
 
   // SYSTEM MATRIX:
-  auto A  = linear_operator< TrilinosWrappers::MPI::Vector >( jacobian_matrix.block(0,0) );
-  auto Bt = linear_operator< TrilinosWrappers::MPI::Vector >( jacobian_matrix.block(0,1) );
-  //  auto B =  transpose_operator(Bt);
-  auto B     = linear_operator< TrilinosWrappers::MPI::Vector >  ( jacobian_matrix.block(1,0) );
-  auto ZeroP = 0*linear_operator< TrilinosWrappers::MPI::Vector >( jacobian_matrix.block(1,1) );
+  std::array<std::array<LinearOperator<TrilinosWrappers::MPI::Vector>, 2>, 2> S;
+  for (unsigned int i = 0; i<2; ++i)
+    for (unsigned int j = 0; j<2; ++j)
+      S[i][j] = linear_operator< TrilinosWrappers::MPI::Vector >( jacobian_matrix.block(i,j) );
 
-  auto Mp    = linear_operator< TrilinosWrappers::MPI::Vector >( jacobian_preconditioner_matrix.block(1,1) );
+  S[1][1] = null_operator(S[1][1]); // p p 
+
+  jacobian_op = BlockLinearOperator<TrilinosWrappers::MPI::BlockVector>(S);
+
+  // PRECONDITIONER
+
+  std::array<std::array<LinearOperator<TrilinosWrappers::MPI::Vector>, 2>, 2> P;
+  for (unsigned int i = 0; i<2; ++i)
+    for (unsigned int j = 0; j<2; ++j)
+      P[i][j] = linear_operator< TrilinosWrappers::MPI::Vector >( jacobian_preconditioner_matrix.block(i,j) );
 
   static ReductionControl solver_control_pre(5000, 1e-8);
   static SolverCG<TrilinosWrappers::MPI::Vector> solver_CG(solver_control_pre);
-  auto A_inv     = inverse_operator( A, solver_CG, *Amg_preconditioner);
-  auto Schur_inv = inverse_operator( Mp, solver_CG, *Mp_preconditioner);
 
-  auto P00 = A_inv;
-  auto P01 = null_operator(Bt);
-  auto P10 = Schur_inv * B * A_inv;
-  auto P11 = -1 * Schur_inv;
+  for (unsigned int i = 0; i<2; ++i)
+    for (unsigned int j = 0; j<2; ++j)
+      if (i!=j)
+        P[i][j] = null_operator< TrilinosWrappers::MPI::Vector >(P[i][j]);
 
-  // ASSEMBLE THE PROBLEM:
-  jacobian_op  = block_operator<2, 2, VEC >({{
-      {{ A, Bt }} ,
-      {{ B, ZeroP }}
-    }
-  });
+  P[0][0] = inverse_operator< >(  S[0][0],
+                                  solver_CG,
+                                  *Amg_preconditioner);
+  P[1][1] = inverse_operator< >(  jacobian_preconditioner_matrix.block(1,1),
+                                  solver_CG,
+                                  *Mp_preconditioner);
 
-
-  //const auto S = linear_operator<VEC>(matrix);
-
-  jacobian_preconditioner_op = block_operator<2, 2, VEC >({{
-      {{ P00, P01 }} ,
-      {{ P10, P11 }}
-    }
-  });
-
+  jacobian_preconditioner_op = block_forward_substitution< >(
+              BlockLinearOperator<TrilinosWrappers::MPI::BlockVector>(S),
+              BlockLinearOperator<TrilinosWrappers::MPI::BlockVector>(P));
 
   computing_timer.exit_section();
 }
@@ -491,7 +520,7 @@ int Stokes<dim>::residual (const double t,
 {
   computing_timer.enter_section ("Residual");
   dirichlet_bcs.set_time(t);
-  forcing_term.set_time(t);
+  dirichlet_dot.set_time(t);
   exact_solution.set_time(t);
   constraints.clear();
   DoFTools::make_hanging_node_constraints (*dof_handler,
@@ -500,12 +529,21 @@ int Stokes<dim>::residual (const double t,
   dirichlet_bcs.interpolate_boundary_values(*dof_handler, constraints);
 
   constraints.close ();
+  constraints_dot.clear();
+
+  DoFTools::make_hanging_node_constraints (*dof_handler,
+                                           constraints_dot);
+
+  dirichlet_dot.interpolate_boundary_values(*dof_handler, constraints_dot);
+  constraints_dot.close ();
 
   VEC tmp(solution);
+  VEC tmp_dot(solution_dot);
   constraints.distribute(tmp);
+  constraints_dot.distribute(tmp_dot);
 
   distributed_solution = tmp;
-  distributed_solution_dot = solution_dot;
+  distributed_solution_dot = tmp_dot;
 
   dst = 0;
 
@@ -580,11 +618,6 @@ int Stokes<dim>::residual (const double t,
                                  div_us[q_point]*
                                  fe_values[p].value(i,q_point)
 
-                                 /*
-                                                                  -
-                                                                  forcing_term.value(quad_points[q_point]) *
-                                                                  fe_values[u].value(i,q_point)*/
-
                                )*fe_values.JxW(q_point);
 
 
@@ -597,6 +630,9 @@ int Stokes<dim>::residual (const double t,
           }
 
         constraints.distribute_local_to_global (cell_rhs,
+                                                local_dof_indices,
+                                                dst);
+        constraints_dot.distribute_local_to_global (cell_rhs,
                                                 local_dof_indices,
                                                 dst);
       }
@@ -638,9 +674,28 @@ void Stokes<dim>::output_step(const double t,
 {
   computing_timer.enter_section ("Postprocessing");
   VEC tmp(solution);
+  VEC tmp_dot(solution_dot);
+  dirichlet_bcs.set_time(t);
+  dirichlet_dot.set_time(t);
+  exact_solution.set_time(t);
+  constraints.clear();
+  DoFTools::make_hanging_node_constraints (*dof_handler,
+                                           constraints);
+
+  dirichlet_bcs.interpolate_boundary_values(*dof_handler, constraints);
+
+  constraints.close ();
+  constraints_dot.clear();
+
+  DoFTools::make_hanging_node_constraints (*dof_handler,
+                                           constraints_dot);
+
+  dirichlet_dot.interpolate_boundary_values(*dof_handler, constraints_dot);
+  constraints_dot.close ();
   constraints.distribute(tmp);
+  constraints_dot.distribute(tmp_dot);
   distributed_solution = tmp;
-  distributed_solution_dot = solution_dot;
+  distributed_solution_dot = tmp_dot;
 
   std::stringstream suffix;
   suffix << "." << step_number;
@@ -676,21 +731,21 @@ bool Stokes<dim>::solver_should_restart (const double t,
       double mpi_max_kelly=0;
 
       computing_timer.enter_section ("   Compute error estimator");
-      VEC tmp_c(solution);
-      constraints.distribute(tmp_c);
-      distributed_solution = tmp_c;
+     VEC tmp_c(solution);
+     constraints.distribute(tmp_c);
+     distributed_solution = tmp_c;
       std::vector<bool> mask(dim+1,true);
       mask[dim] = false;
 
-      Vector<float> estimated_error_per_cell (triangulation->n_active_cells());
+      Vector<float> estimated_error_per_cell ;//(triangulation->n_active_cells());
       KellyErrorEstimator<dim>::estimate (*dof_handler,
-                                          QGauss<dim-1>(fe->degree+1),
+                                          QGauss<dim-1>(4),
                                           typename FunctionMap<dim>::type(),
                                           distributed_solution,
                                           estimated_error_per_cell,
                                           mask,
                                           0,
-                                          numbers::invalid_unsigned_int,
+                                          0,
                                           triangulation->locally_owned_subdomain());
 
 
@@ -743,7 +798,25 @@ bool Stokes<dim>::solver_should_restart (const double t,
 
           solution = tmp;
           solution_dot = tmp_dot;
+  dirichlet_bcs.set_time(t);
+  dirichlet_dot.set_time(t);
+  exact_solution.set_time(t);
+  constraints.clear();
+  DoFTools::make_hanging_node_constraints (*dof_handler,
+                                           constraints);
+
+  dirichlet_bcs.interpolate_boundary_values(*dof_handler, constraints);
+
+  constraints.close ();
+  constraints_dot.clear();
+
+  DoFTools::make_hanging_node_constraints (*dof_handler,
+                                           constraints_dot);
+
+  dirichlet_dot.interpolate_boundary_values(*dof_handler, constraints_dot);
+  constraints_dot.close ();
           constraints.distribute(solution);
+          constraints_dot.distribute(solution_dot);
           computing_timer.exit_section();
           MPI::COMM_WORLD.Barrier();
           return true;
@@ -770,10 +843,6 @@ int Stokes<dim>::setup_jacobian (const double t,
 {
   computing_timer.enter_section ("   Setup Jacobian");
   assemble_jacobian_matrix(t, src_yy, src_yp, alpha);
-
-//  TrilinosWrappers::PreconditionAMG::AdditionalData data;
-//
-//  preconditioner.initialize(jacobian_matrix, data);
 
   computing_timer.exit_section();
 
@@ -870,6 +939,7 @@ void Stokes<dim>::run ()
   setup_dofs(true);
 
   constraints.distribute(solution);
+  constraints_dot.distribute(solution_dot);
 
   dae.start_ode(solution, solution_dot, max_time_iterations);
   eh.error_from_exact(*mapping, *dof_handler, distributed_solution, exact_solution);

@@ -165,6 +165,7 @@ private:
   shared_ptr<DoFHandler<dim,dim> >          dof_handler;
 
   ConstraintMatrix                          constraints;
+  ConstraintMatrix                          constraints_dot;
 
   TrilinosWrappers::BlockSparsityPattern       jacobian_matrix_sp;
   TrilinosWrappers::BlockSparseMatrix          jacobian_matrix;
@@ -197,6 +198,7 @@ private:
   ParsedFunction<dim, dim+1>        initial_solution;
   ParsedFunction<dim, dim+1>        initial_solution_dot;
   ParsedDirichletBCs<dim,dim,dim+1> dirichlet_bcs;
+  ParsedDirichletBCs<dim,dim,dim+1> dirichlet_dot;
 
   ParsedDataOut<dim, dim>                  data_out;
 
