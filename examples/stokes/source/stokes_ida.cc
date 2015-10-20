@@ -714,7 +714,7 @@ bool Stokes<dim>::solver_should_restart (const double t,
       computing_timer.enter_section ("   Compute error estimator");
 
 
-//  update_constraints(t);
+  update_constraints(t);
 
      VEC tmp_c(solution);
      constraints.distribute(tmp_c);
@@ -788,7 +788,6 @@ bool Stokes<dim>::solver_should_restart (const double t,
 
           constraints.distribute(solution);
           constraints_dot.distribute(solution_dot);
-  output_step(t,solution,solution_dot,step_number+900,h);
           computing_timer.exit_section();
           MPI::COMM_WORLD.Barrier();
           return true;

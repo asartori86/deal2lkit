@@ -73,7 +73,7 @@ subsection IDA Solver Parameters
   set Ignore algebraic terms for error computations = true
   set Initial condition Newton max iterations       = 5
   set Initial condition Newton parameter            = 0.33
-  set Initial condition type                        = use_y_dot
+  set Initial condition type                        = use_y_diff
   set Initial step size                             = 1e-4
   set Initial time                                  = 0
   set Maximum number of nonlinear iterations        = 10
@@ -142,12 +142,12 @@ subsection Output Parameters
   end
 end
 subsection Stokes<2>
-  set Adaptive refinement            = false
+  set Adaptive refinement            = true
   set Bottom fraction                = 0.05
-  set Initial global refinement      = 2
+  set Initial global refinement      = 1
   set Maximum number of cells        = -1000
   set Maximum number of time steps   = 10000
-  set Refine mesh during transient   = true
+  set Refine mesh during transient   = false
   set Threshold for restart solver   = 4e-1
   set Timer output file              = timer.txt
   set Top fraction                   = 0.3
