@@ -38,6 +38,8 @@
 //#include <deal.II/base/index_set.h>
 #include <deal.II/distributed/tria.h>
 #include <deal.II/distributed/grid_refinement.h>
+#include <deal.II/grid/grid_refinement.h>
+#include <deal.II/numerics/solution_transfer.h>
 
 #include <sundials/sundials_types.h>
 #include <nvector/nvector_parallel.h>
@@ -477,7 +479,7 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
   Amg_data.aggregation_threshold = 0.02;
 
   Mp_preconditioner->initialize  (jacobian_preconditioner_matrix.block(1,1));
-  Amg_preconditioner->initialize (jacobian_preconditioner_matrix.block(0,0),
+  Amg_preconditioner->initialize (jacobian_matrix.block(0,0),
                                   Amg_data);
 
 
@@ -714,7 +716,7 @@ bool Stokes<dim>::solver_should_restart (const double t,
       computing_timer.enter_section ("   Compute error estimator");
 
 
-  update_constraints(t);
+//  update_constraints(t);
 
      VEC tmp_c(solution);
      constraints.distribute(tmp_c);
@@ -756,8 +758,10 @@ bool Stokes<dim>::solver_should_restart (const double t,
                                              estimated_error_per_cell,
                                              top_fraction, bottom_fraction,max_cells);
 
-          parallel::distributed::SolutionTransfer<dim,VEC> sol_tr(*dof_handler);
-          parallel::distributed::SolutionTransfer<dim,VEC> sol_dot_tr(*dof_handler);
+          parallel::distributed::
+            SolutionTransfer<dim,VEC> sol_tr(*dof_handler);
+          parallel::distributed::
+            SolutionTransfer<dim,VEC> sol_dot_tr(*dof_handler);
 
           VEC sol (distributed_solution);
           VEC sol_dot (distributed_solution_dot);
@@ -784,7 +788,7 @@ bool Stokes<dim>::solver_should_restart (const double t,
           solution = tmp;
           solution_dot = tmp_dot;
 
-          update_constraints(t);
+   //       update_constraints(t);
 
           constraints.distribute(solution);
           constraints_dot.distribute(solution_dot);
