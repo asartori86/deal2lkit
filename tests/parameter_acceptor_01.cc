@@ -50,3 +50,4 @@ int main ()
   a.declare_all_parameters(prm);
   prm.log_parameters(deallog);
 }
+

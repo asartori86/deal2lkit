@@ -46,3 +46,4 @@ int main ()
       deallog << "Impossible to create " + name_dir + "." << std::endl;
     }
 }
+

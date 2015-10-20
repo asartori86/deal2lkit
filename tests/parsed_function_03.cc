@@ -32,3 +32,4 @@ int main ()
   deallog << "F(" << p << ") = x^2+y^2 = " << pf.value(p) << std::endl;
 
 }
+

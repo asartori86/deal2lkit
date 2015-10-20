@@ -33,3 +33,4 @@ int main ()
   ParameterAcceptor::prm.log_parameters(deallog);
 
 }
+

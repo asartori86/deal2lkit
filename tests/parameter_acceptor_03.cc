@@ -73,3 +73,4 @@ int main ()
   b.log_info();
   c.log_info();
 }
+

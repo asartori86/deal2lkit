@@ -47,3 +47,4 @@ int main (int argc, char *argv[])
   std::system("touch solution/run000/test.txt");
   deallog << "exists ? = " << file_exists("solution/run000/test.txt") << std::endl;
 }
+

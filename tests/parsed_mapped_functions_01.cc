@@ -52,3 +52,4 @@ int main ()
   deallog << "Parsed Function on id 1: " <<  pmf.get_mapped_function(1)->value(p) << std::endl;
   deallog << "Parsed Function on id 6: " <<  pmf.get_mapped_function(6)->value(p) << std::endl;
 }
+

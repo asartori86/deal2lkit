@@ -44,3 +44,4 @@ int main ()
   deallog << "Norm: " << x.l2_norm() << std::endl;
 
 }
+

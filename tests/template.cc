@@ -20,3 +20,4 @@ int main ()
   initlog();
   deallog << 0 << std::endl;
 }
+

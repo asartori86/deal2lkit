@@ -30,3 +30,4 @@ main ()
   fputs("output4\n",stdout);
   return 0;
 }
+

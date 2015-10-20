@@ -37,3 +37,4 @@ int main ()
   deallog << "--> " << dir_exists("tmp_dir000") << std::endl;
   return 0;
 }
+

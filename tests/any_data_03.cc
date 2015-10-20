@@ -97,3 +97,4 @@ int main ()
     deallog << newdata.get<std::vector<int> >("int_ref")[i] << " ";
   deallog << std::endl;
 }
+

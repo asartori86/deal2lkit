@@ -26,3 +26,4 @@ int main ()
   AssimpInterface::generate_triangulation(SOURCE_DIR "/grids/torus.obj", tria, -1, true, 1e-3);
   return 0;
 }
+

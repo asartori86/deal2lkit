@@ -32,3 +32,4 @@ int main ()
   // Should fail because fe_name has 3 components
   return 0;
 }
+

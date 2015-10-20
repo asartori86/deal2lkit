@@ -44,3 +44,4 @@ int main (int argc, char *argv[])
   vector_shift(v1,1.);
   v1.print(std::cout);
 }
+

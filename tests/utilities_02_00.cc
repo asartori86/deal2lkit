@@ -36,3 +36,4 @@ int main ()
   deallog << "--> " << dir_exists("dsfas002") << std::endl;
   return 0;
 }
+

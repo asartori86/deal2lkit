@@ -56,3 +56,4 @@ int main ()
     }
   eh.output_table(deallog.get_file_stream());
 }
+

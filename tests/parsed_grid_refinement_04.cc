@@ -79,3 +79,4 @@ int main (int argc, char *argv[])
   test<2,3>();
   test<3,3>();
 }
+

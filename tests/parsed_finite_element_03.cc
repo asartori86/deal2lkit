@@ -42,3 +42,4 @@ int main ()
     deallog << ", " << b[i];
   deallog << std::endl;
 }
+

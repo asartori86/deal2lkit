@@ -31,3 +31,4 @@ int main ()
   deallog << "F(" << p << ") = x^2+y^2+k(=1) = " << pf.value(p) << std::endl;
 
 }
+

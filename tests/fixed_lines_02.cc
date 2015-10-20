@@ -57,3 +57,4 @@ int main ()
   rename_file("test_fstream.txt", "output");
   return 0;
 }
+

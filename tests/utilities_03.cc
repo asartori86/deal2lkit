@@ -38,3 +38,4 @@ int main ()
   std::system("rm -rf new_folder*");
   deallog << "exist  --> " << dir_exists("new_folder000") << std::endl;
 }
+

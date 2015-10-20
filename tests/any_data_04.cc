@@ -32,3 +32,4 @@ int main ()
   deallog << (data.have("zero") ? "OK" : "KO") << std::endl;
 
 }
+

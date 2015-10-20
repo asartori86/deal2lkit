@@ -52,3 +52,4 @@ int main (int argc, char *argv[])
         deallog<<i<<" "<<foo[i]<<std::endl;
     }
 }
+

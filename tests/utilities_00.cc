@@ -40,3 +40,4 @@ int main ()
   for (it = uvec.begin(); it !=uvec.end(); ++it)
     deallog << *it << std::endl;
 }
+

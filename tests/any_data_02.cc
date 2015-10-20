@@ -67,3 +67,4 @@ int main ()
   Problem<1,1,Energy<1,1> > pb;
   pb.run();
 }
+

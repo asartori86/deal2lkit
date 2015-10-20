@@ -58,3 +58,4 @@ int main ()
 
   ParameterAcceptor::log_info();
 }
+
