@@ -340,7 +340,7 @@ unsigned int IDAInterface<VEC>::start_ode(VEC &solution,
           IDAGetLastOrder(ida_mem, &k);
           frac = std::pow((double)k,2.);
           reset_ode(t, solution, solution_dot,
-                    h/frac, max_steps);
+                    h/2.0, max_steps);
           reset = solver.solver_should_restart(t, step_number, h, solution, solution_dot);
         }
 

@@ -73,11 +73,11 @@ subsection IDA Solver Parameters
   set Ignore algebraic terms for error computations = true
   set Initial condition Newton max iterations       = 5
   set Initial condition Newton parameter            = 0.33
-  set Initial condition type                        = use_y_diff
+  set Initial condition type                        = use_y_dot
   set Initial step size                             = 1e-4
   set Initial time                                  = 0
   set Maximum number of nonlinear iterations        = 10
-  set Maximum order of BDF                          = 1
+  set Maximum order of BDF                          = 2
   set Min step size                                 = 5e-5
   set Relative error tolerance                      = 1e-3
   set Seconds between each output                   = 1e-1

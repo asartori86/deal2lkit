@@ -304,6 +304,7 @@ void Stokes<dim>::setup_dofs (const bool &first_run)
 template <int dim>
 void Stokes<dim>::update_constraints (const double &t)
 {
+  std::cout << "inizio " << __func__ << std::endl << std::flush;
   dirichlet_bcs.set_time(t);
   dirichlet_dot.set_time(t);
   exact_solution.set_time(t);
@@ -321,6 +322,7 @@ void Stokes<dim>::update_constraints (const double &t)
 
   dirichlet_dot.interpolate_boundary_values(*dof_handler, constraints_dot);
   constraints_dot.close ();
+  std::cout << "fine " << __func__ << std::endl << std::flush;
 }
 
 template <int dim>
@@ -329,6 +331,7 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
                                            const VEC &solution_dot,
                                            const double alpha)
 {
+  std::cout << "inizio " << __func__ << std::endl << std::flush;
   pcout << "alpha ----------------------------------------- " << alpha <<std::endl;
 
   computing_timer.enter_section ("   Assemble jacobian matrix");
@@ -441,7 +444,7 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
   jacobian_matrix.compress (VectorOperation::add);
   jacobian_preconditioner_matrix.compress (VectorOperation::add);
   //compress(jacobian_matrix, VectorOperation::add);
-/* mbarde
+
   auto id = solution.locally_owned_elements();
   for (unsigned int i=0; i<id.n_elements(); ++i)
     {
@@ -451,7 +454,7 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
     }
   //compress(jacobian_matrix,VectorOperation::insert);
   jacobian_matrix.compress(VectorOperation::insert);
-*/
+
 
   // ########## Operators setup
   std::vector<std::vector<bool> > constant_modes;
@@ -511,6 +514,7 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
               BlockLinearOperator<TrilinosWrappers::MPI::BlockVector>(P));
 
   computing_timer.exit_section();
+  std::cout << "fine " << __func__ << std::endl << std::flush;
 }
 
 template <int dim>
@@ -519,6 +523,7 @@ int Stokes<dim>::residual (const double t,
                            const VEC &solution_dot,
                            VEC &dst)
 {
+  std::cout << "inizio " << __func__ << std::endl << std::flush;
   computing_timer.enter_section ("Residual");
 
   update_constraints(t);
@@ -636,6 +641,7 @@ int Stokes<dim>::residual (const double t,
 
   dst.compress(VectorOperation::insert);
   computing_timer.exit_section();
+  std::cout << "fine " << __func__ << std::endl << std::flush;
   return 0;
 }
 
@@ -659,6 +665,7 @@ void Stokes<dim>::output_step(const double t,
                               const unsigned int step_number,
                               const double /* h */ )
 {
+  std::cout << "inizio " << __func__ << std::endl << std::flush;
   computing_timer.enter_section ("Postprocessing");
 
   update_constraints(t);
@@ -688,6 +695,7 @@ void Stokes<dim>::output_step(const double t,
   eh.error_from_exact(*mapping, *dof_handler, distributed_solution, exact_solution);
 
   computing_timer.exit_section ();
+  std::cout << "fine " << __func__ << std::endl << std::flush;
 }
 
 template <int dim>
@@ -697,9 +705,11 @@ bool Stokes<dim>::solver_should_restart (const double t,
                                          VEC &solution,
                                          VEC &solution_dot)
 {
+  std::cout << "inizio " << __func__ << std::endl << std::flush;
 
   if (use_space_adaptivity)
     {
+          std::cout << "llllllllllllllllllllllllllllllllllllllll" << std::endl << std::flush;
       int check = 0;
       double max_kelly=0;
       double mpi_max_kelly=0;
@@ -769,6 +779,7 @@ bool Stokes<dim>::solver_should_restart (const double t,
             triangulation->refine_global (1);
 
           setup_dofs(false);
+          std::cout << "11111111111111111111111111111111111111111111111111111" << std::endl << std::flush;
 
           VEC tmp (solution);
           VEC tmp_dot (solution_dot);
@@ -776,15 +787,20 @@ bool Stokes<dim>::solver_should_restart (const double t,
           sol_tr.interpolate (tmp);
           sol_dot_tr.interpolate (tmp_dot);
 
+          std::cout << "22222222222222222222222222222222222222222222222222222" << std::endl << std::flush;
           solution = tmp;
           solution_dot = tmp_dot;
 
+          std::cout << "33333333333333333333333333333333333333333333333333333" << std::endl << std::flush;
           update_constraints(t);
+          std::cout << "44444444444444444444444444444444444444444444444444444" << std::endl << std::flush;
 
           constraints.distribute(solution);
           constraints_dot.distribute(solution_dot);
           computing_timer.exit_section();
+          std::cout << "55555555555555555555555555555555555555555555555555555" << std::endl << std::flush;
           MPI::COMM_WORLD.Barrier();
+          std::cout << "66666666666666666666666666666666666666666666666666666" << std::endl << std::flush;
           return true;
         }
       else // if max_kelly > kelly_threshold
@@ -807,9 +823,12 @@ int Stokes<dim>::setup_jacobian (const double t,
                                  const VEC &,
                                  const double alpha)
 {
+  std::cout << "inizio " << __func__ << std::endl << std::flush;
   computing_timer.enter_section ("   Setup Jacobian");
 
+          std::cout << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << std::endl << std::flush;
   assemble_jacobian_matrix(t, src_yy, src_yp, alpha);
+          std::cout << "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" << std::endl << std::flush;
 
   computing_timer.exit_section();
 
@@ -827,8 +846,10 @@ int Stokes<dim>::solve_jacobian_system (const double t,
 {
   computing_timer.enter_section ("   Solve system");
 //  update_constraints(t);
+          std::cout << "77777777777777777777777777777777777777777777777777777" << std::endl << std::flush;
   set_constrained_dofs_to_zero(dst);
 
+          std::cout << "88888888888888888888888888888888888888888888888888888" << std::endl << std::flush;
   const double solver_tolerance = 1e-8;
 
   PrimitiveVectorMemory<VEC> mem;
@@ -873,30 +894,35 @@ int Stokes<dim>::solve_jacobian_system (const double t,
   set_constrained_dofs_to_zero(dst);
 
   computing_timer.exit_section();
+  std::cout << "fine " << __func__ << std::endl << std::flush;
   return 0;
 }
 
 template <int dim>
 VEC &Stokes<dim>::differential_components() const
 {
+  std::cout << "inizio " << __func__ << std::endl << std::flush;
   static VEC diff_comps;
   diff_comps.reinit(solution);
   diff_comps.block(0) = 1; // velocity is differential
   diff_comps.block(1) = 0; // pressure is only algebraic
 
  // set_constrained_dofs_to_zero(diff_comps);
+  std::cout << "fine " << __func__ << std::endl << std::flush;
   return diff_comps;
 }
 
 template <int dim>
 void Stokes<dim>::set_constrained_dofs_to_zero(VEC &v) const
 {
+  std::cout << "inizio " << __func__ << std::endl << std::flush;
   for (unsigned int i=0; i<global_partitioning.n_elements(); ++i)
     {
       auto j = global_partitioning.nth_index_in_set(i);
       if (constraints.is_constrained(j))
         v[j] = 0;
     }
+  std::cout << "fine " << __func__ << std::endl << std::flush;
 }
 
 template <int dim>
