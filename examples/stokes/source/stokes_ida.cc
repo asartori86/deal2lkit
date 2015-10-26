@@ -827,51 +827,102 @@ int Stokes<dim>::solve_jacobian_system (const double t,
 {
   computing_timer.enter_section ("   Solve system");
 //  update_constraints(t);
+
+  dst = solution;
   set_constrained_dofs_to_zero(dst);
+  
 
-  const double solver_tolerance = 1e-8;
+//  const double solver_tolerance = 1e-8*src.l2_norm();
+//
+//  PrimitiveVectorMemory<VEC> mem;
+//  SolverControl solver_control (30, solver_tolerance);
+//  SolverControl solver_control_refined (jacobian_matrix.m(), solver_tolerance);
+//
+//  SolverFGMRES<VEC>
+//  solver(solver_control, mem,
+//         typename SolverFGMRES<VEC>::AdditionalData(30, true));
+//
+//  SolverFGMRES<VEC>
+//  solver_refined(solver_control_refined, mem,
+//                 typename SolverFGMRES<VEC>::AdditionalData(50, true));
+//
+//  auto S_inv         = inverse_operator(jacobian_op, solver, jacobian_preconditioner_op);
+//  auto S_inv_refined = inverse_operator(jacobian_op, solver_refined, jacobian_preconditioner_op);
+//  unsigned int n_iterations = 0;
+//  try
+//    {
+//      S_inv.vmult(dst, src);
+//      n_iterations = solver_control.last_step();
+//    }
+//  catch ( SolverControl::NoConvergence )
+//    {
+//      try
+//        {
+//          S_inv_refined.vmult(dst, src);
+//          n_iterations = (solver_control.last_step() +
+//                          solver_control_refined.last_step());
+//        }
+//      catch ( SolverControl::NoConvergence )
+//        {
+//          computing_timer.exit_section();
+//          return 1;
+//        }
+//
+//    }
+//  pcout << std::endl
+//        << " iterations:                           " <<  n_iterations
+//        << std::endl;
+//
+//  set_constrained_dofs_to_zero(dst);
 
-  PrimitiveVectorMemory<VEC> mem;
-  SolverControl solver_control (30, solver_tolerance);
-  SolverControl solver_control_refined (jacobian_matrix.m(), solver_tolerance);
+      PrimitiveVectorMemory<TrilinosWrappers::MPI::BlockVector> mem;
 
-  SolverFGMRES<VEC>
-  solver(solver_control, mem,
-         typename SolverFGMRES<VEC>::AdditionalData(30, true));
+      unsigned int n_iterations = 0;
+      const double solver_tolerance = 1e-8 * src.l2_norm();
+      SolverControl solver_control (30, solver_tolerance);
 
-  SolverFGMRES<VEC>
-  solver_refined(solver_control_refined, mem,
-                 typename SolverFGMRES<VEC>::AdditionalData(50, true));
-
-  auto S_inv         = inverse_operator(jacobian_op, solver, jacobian_preconditioner_op);
-  auto S_inv_refined = inverse_operator(jacobian_op, solver_refined, jacobian_preconditioner_op);
-  unsigned int n_iterations = 0;
-  try
-    {
-      S_inv.vmult(dst, src);
-      n_iterations = solver_control.last_step();
-    }
-  catch ( SolverControl::NoConvergence )
-    {
       try
         {
-          S_inv_refined.vmult(dst, src);
+          const LinearSolvers::BlockSchurPreconditioner<TrilinosWrappers::PreconditionAMG,
+                TrilinosWrappers::PreconditionJacobi>
+                preconditioner (jacobian_matrix, jacobian_preconditioner_matrix,
+                                *Mp_preconditioner, *Amg_preconditioner,
+                                false);
+
+          SolverFGMRES<TrilinosWrappers::MPI::BlockVector>
+          solver(solver_control, mem,
+                 SolverFGMRES<TrilinosWrappers::MPI::BlockVector>::
+                 AdditionalData(30, true));
+          solver.solve(jacobian_matrix, dst, src,
+                       preconditioner);
+
+          n_iterations = solver_control.last_step();
+        }
+
+      catch (SolverControl::NoConvergence)
+        {
+          const LinearSolvers::BlockSchurPreconditioner<TrilinosWrappers::PreconditionAMG,
+                TrilinosWrappers::PreconditionJacobi>
+                preconditioner (jacobian_matrix, jacobian_preconditioner_matrix,
+                                *Mp_preconditioner, *Amg_preconditioner,
+                                true);
+
+          SolverControl solver_control_refined (jacobian_matrix.m(), solver_tolerance);
+          SolverFGMRES<TrilinosWrappers::MPI::BlockVector>
+          solver(solver_control_refined, mem,
+                 SolverFGMRES<TrilinosWrappers::MPI::BlockVector>::
+                 AdditionalData(50, true));
+          solver.solve(jacobian_matrix, dst, src,
+                       preconditioner);
+
           n_iterations = (solver_control.last_step() +
                           solver_control_refined.last_step());
         }
-      catch ( SolverControl::NoConvergence )
-        {
-          computing_timer.exit_section();
-          return 1;
-        }
 
-    }
-  pcout << std::endl
-        << " iterations:                           " <<  n_iterations
-        << std::endl;
 
   set_constrained_dofs_to_zero(dst);
-
+      pcout << n_iterations  << " iterations."
+            << std::endl;
   computing_timer.exit_section();
   return 0;
 }

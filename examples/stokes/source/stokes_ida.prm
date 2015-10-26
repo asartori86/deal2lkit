@@ -148,7 +148,7 @@ subsection Stokes<2>
   set Maximum number of cells        = -1000
   set Maximum number of time steps   = 10000
   set Refine mesh during transient   = true
-  set Threshold for restart solver   = 8e-2
+  set Threshold for restart solver   = 1e-2
   set Timer output file              = timer.txt
   set Top fraction                   = 0.3
   set Use direct solver if available = true
