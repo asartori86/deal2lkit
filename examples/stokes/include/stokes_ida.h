@@ -177,8 +177,12 @@ private:
   TrilinosWrappers::BlockSparsityPattern       jacobian_preconditioner_matrix_sp;
   TrilinosWrappers::BlockSparseMatrix          jacobian_preconditioner_matrix;
 
+  TrilinosWrappers::BlockSparsityPattern       preconditioner_refined_sp;
+  TrilinosWrappers::BlockSparseMatrix          preconditioner_refined;
+
   TrilinosWrappers::PreconditionAMG       preconditioner;
   LinearOperator<VEC> jacobian_preconditioner_op;
+  LinearOperator<VEC> preconditioner_ref_op;
   LinearOperator<VEC> jacobian_op;
 
   VEC        solution;

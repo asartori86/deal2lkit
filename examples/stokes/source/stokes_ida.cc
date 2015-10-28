@@ -285,6 +285,21 @@ void Stokes<dim>::setup_dofs (const bool &first_run)
 
   jacobian_preconditioner_matrix.reinit(jacobian_preconditioner_matrix_sp);
 
+  preconditioner_refined.clear();
+  preconditioner_refined_sp.reinit(partitioning,partitioning,relevant_partitioning,comm);
+
+
+  DoFTools::make_sparsity_pattern (*dof_handler,
+                                   fe_builder.get_preconditioner_coupling(),
+                                   preconditioner_refined_sp,
+                                   constraints,
+                                   false,
+                                   Utilities::MPI::this_mpi_process(comm));
+
+  preconditioner_refined_sp.compress();
+
+  preconditioner_refined.reinit(preconditioner_refined_sp);
+
   solution.reinit(partitioning, comm);
   solution_dot.reinit(partitioning, comm);
 
@@ -334,6 +349,7 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
   computing_timer.enter_section ("   Assemble jacobian matrix");
   jacobian_matrix = 0;
   jacobian_preconditioner_matrix = 0;
+  preconditioner_refined = 0;
 
   update_constraints(t);
 
@@ -379,6 +395,12 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
 
         fe_values.reinit (cell);
 
+        std::vector<SymmetricTensor<2,dim> > grad_sols(n_q_points);
+        fe_values[velocities].get_function_symmetric_gradients(distributed_solution,grad_sols);
+
+        std::vector<Tensor<1,dim> > sols (n_q_points);
+        fe_values[velocities].get_function_values(distributed_solution,sols);
+
         for (unsigned int q_point=0; q_point<n_q_points; ++q_point)
           {
             for (unsigned int k=0; k<dofs_per_cell; ++k)
@@ -399,6 +421,10 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
                                           phi_u[j]
                                           +
                                           mu*sym_grads_phi_u[i] * sym_grads_phi_u[j]
+
+                                          +grads_phi_u[j]*phi_u[i]*sols[q_point]
+                                          +grad_sols[q_point]*phi_u[j]*phi_u[i]
+
                                           -
                                           (div_phi_u[i] * phi_p[j])
                                           -
@@ -491,25 +517,42 @@ void Stokes<dim>::assemble_jacobian_matrix(const double t,
     for (unsigned int j = 0; j<2; ++j)
       P[i][j] = linear_operator< TrilinosWrappers::MPI::Vector >( jacobian_preconditioner_matrix.block(i,j) );
 
+  std::array<std::array<LinearOperator<TrilinosWrappers::MPI::Vector>, 2>, 2> P_ref;
+  for (unsigned int i = 0; i<2; ++i)
+    for (unsigned int j = 0; j<2; ++j)
+      P_ref[i][j] = linear_operator< TrilinosWrappers::MPI::Vector >( jacobian_preconditioner_matrix.block(i,j) );
   static ReductionControl solver_control_pre(5000, 1e-8);
   static SolverCG<TrilinosWrappers::MPI::Vector> solver_CG(solver_control_pre);
 
   for (unsigned int i = 0; i<2; ++i)
     for (unsigned int j = 0; j<2; ++j)
       if (i!=j)
-        P[i][j] = null_operator< TrilinosWrappers::MPI::Vector >(P[i][j]);
+        P_ref[i][j] = null_operator< TrilinosWrappers::MPI::Vector >(P[i][j]);
 
-  P[0][0] = inverse_operator< >(  S[0][0],
+  P_ref[0][0] = inverse_operator< >(  S[0][0],
                                   solver_CG,
+                                  *Amg_preconditioner);
+  P[0][0] = linear_operator< 
+            dealii::TrilinosWrappers::MPI::Vector,
+            dealii::TrilinosWrappers::MPI::Vector,
+            TrilinosWrappers::SparseMatrix,
+            TrilinosWrappers::PreconditionAMG
+    >(  jacobian_preconditioner_matrix.block(0,0),
                                   *Amg_preconditioner);
   P[1][1] = inverse_operator< >(  jacobian_preconditioner_matrix.block(1,1),
                                   solver_CG,
                                   *Mp_preconditioner);
 
+  P_ref[1][1] = inverse_operator< >(  jacobian_preconditioner_matrix.block(1,1),
+                                  solver_CG,
+                                  *Mp_preconditioner);
   jacobian_preconditioner_op = block_forward_substitution< >(
               BlockLinearOperator<TrilinosWrappers::MPI::BlockVector>(S),
               BlockLinearOperator<TrilinosWrappers::MPI::BlockVector>(P));
 
+  preconditioner_ref_op = block_forward_substitution< >(
+              BlockLinearOperator<TrilinosWrappers::MPI::BlockVector>(S),
+              BlockLinearOperator<TrilinosWrappers::MPI::BlockVector>(P_ref));
   computing_timer.exit_section();
 }
 
@@ -577,6 +620,9 @@ int Stokes<dim>::residual (const double t,
         std::vector<Tensor<1,dim> > sols_dot (n_q_points);
         fe_values[u].get_function_values(distributed_solution_dot,sols_dot);
 
+        std::vector<Tensor<1,dim> > sols (n_q_points);
+        fe_values[u].get_function_values(distributed_solution,sols);
+
         std::vector<double> div_us (n_q_points);
         fe_values[u].get_function_divergences(distributed_solution,div_us);
 
@@ -596,6 +642,9 @@ int Stokes<dim>::residual (const double t,
                                  +
                                  mu*scalar_product(grad_sols[q_point],
                                                    fe_values[u].symmetric_gradient(i,q_point))
+
+                                 +
+                                 grad_sols[q_point]*sols[q_point]*fe_values[u].value(i,q_point)
 
                                  -
                                  ps[q_point] *
@@ -830,6 +879,7 @@ int Stokes<dim>::solve_jacobian_system (const double t,
 
   dst = solution;
   set_constrained_dofs_to_zero(dst);
+
   
 
 //  const double solver_tolerance = 1e-8*src.l2_norm();
@@ -847,7 +897,7 @@ int Stokes<dim>::solve_jacobian_system (const double t,
 //                 typename SolverFGMRES<VEC>::AdditionalData(50, true));
 //
 //  auto S_inv         = inverse_operator(jacobian_op, solver, jacobian_preconditioner_op);
-//  auto S_inv_refined = inverse_operator(jacobian_op, solver_refined, jacobian_preconditioner_op);
+//  auto S_inv_refined = inverse_operator(jacobian_op, solver_refined, preconditioner_ref_op);
 //  unsigned int n_iterations = 0;
 //  try
 //    {
