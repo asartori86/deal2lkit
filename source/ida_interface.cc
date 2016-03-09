@@ -268,13 +268,15 @@ unsigned int IDAInterface<VEC>::start_ode(VEC &solution,
   reset_ode(initial_time, solution, solution_dot, initial_step_size, max_steps, true);
 
   double next_time = 0;
+  double previous_time = 0;
 
   solver.output_step( 0, solution, solution_dot, 0, initial_step_size);
 
   while ((t<final_time) && (step_number < max_steps))
     {
-
-      next_time += outputs_period;
+      previous_time = t;
+      pout << "ida time :: " << t <<std::endl;
+      next_time = t+outputs_period;
       if (verbose)
         {
           pout << " "//"\r"
@@ -284,25 +286,33 @@ unsigned int IDAInterface<VEC>::start_ode(VEC &solution,
         }
       status = IDASolve(ida_mem, next_time, &t, yy, yp, IDA_NORMAL);
 
+      pout << "ida time after solve:: " << t <<std::endl;
       status = IDAGetLastStep(ida_mem, &h);
       AssertThrow(status == 0, ExcMessage("Error in IDA Solver"));
 
       copy(solution, yy);
       copy(solution_dot, yp);
 
+      pout << "ida time befor check restart:: " << t <<std::endl;
       // Check the solution
       bool reset = solver.solver_should_restart(t, step_number, h, solution, solution_dot);
+      pout << "ida time after check restart:: " << t <<std::endl;
 
 
       while ( reset == true )
         {
+	  t = previous_time;
+	  
           // double frac = 0;
           int k = 0;
           IDAGetLastOrder(ida_mem, &k);
-          // frac = std::pow((double)k,2.);
+          double frac = h;///2.0; // std::pow((double)k,2.);
+	  pout << "frac :: " << frac << std::endl;
+	  pout << "ida time before reset:: " << t <<std::endl;
           reset_ode(t, solution, solution_dot,
-                    h/2.0, max_steps, false);
-          reset = solver.solver_should_restart(t, step_number, h, solution, solution_dot);
+                    frac, max_steps, false);
+	  pout << "ida time after reset:: " << t <<std::endl;
+          reset = solver.solver_should_restart(t, step_number, frac, solution, solution_dot);
         }
 
       step_number++;
