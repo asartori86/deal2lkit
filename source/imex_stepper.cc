@@ -166,9 +166,9 @@ unsigned int IMEXStepper<VEC>::start_ode(VEC &solution, VEC &solution_dot)
     {
       pout << "Time = " << t << std::endl;
       // Implicit Euler scheme.
-      solution_dot = solution;
-      solution_dot -= *previous_solution;
-      solution_dot *= alpha;
+	solution_dot = solution;
+	solution_dot -= *previous_solution;
+	solution_dot *= alpha;
 
       // Initialization of two counters for the monitoring of
       // progress of the nonlinear solver.
@@ -310,9 +310,178 @@ unsigned int IMEXStepper<VEC>::start_ode(VEC &solution, VEC &solution_dot)
           solution_update = interface.create_new_vector();
           residual = interface.create_new_vector();
           rhs = interface.create_new_vector();
+	  //	  *previous_solution = solution;
 
           t -= step_size;
           --step_number;
+	  /// fix solution after restart
+
+	  //	  solution_dot *= 0; // alpha=0
+
+      interface.residual(t, solution, solution_dot, *residual);
+
+      	  double res_norm_restart = 0.0;
+      	  double solution_norm_restart = 0.0;
+
+      	  unsigned int outer_iter_restart = 0;
+      	  unsigned int inner_iter_restart = 0;
+      	  res_norm_restart = interface.vector_norm(*residual);
+      	  while (outer_iter_restart < max_outer_non_linear_iterations &&
+      		 res_norm_restart > abs_tol &&
+      		 res_norm_restart > rel_tol*solution_norm)
+      	    {
+      	      outer_iter_restart += 1;
+      	      if (update_Jacobian == true)
+      		{
+      		  interface.setup_jacobian(t, solution, solution_dot,
+      					   *residual, 0);
+      		}
+
+      	      inner_iter_restart = 0;
+      	      while (inner_iter_restart < max_inner_non_linear_iterations &&
+      		     res_norm_restart > abs_tol &&
+      		     res_norm_restart > rel_tol*solution_norm)
+      		{
+
+
+      		  inner_iter_restart += 1;
+
+      		  *rhs = *residual;
+      		  *rhs *= -1.0;
+
+      		  interface.solve_jacobian_system(t, solution, solution_dot,
+      						  *residual, 0,
+      						  *rhs, *solution_update);
+
+
+      		  newton_alpha = line_search_with_backtracking(*solution_update,
+      							       *previous_solution,
+      							       0,
+      							       t,
+      							       solution,
+      							       solution_dot,
+      							       *residual);
+
+
+      		  res_norm_restart = interface.vector_norm(*solution_update);
+
+      		  if (rel_tol>0.0)
+      		    {
+      		      solution_norm_restart = interface.vector_norm(solution);
+
+                      pout << std::endl
+                           << "   "
+      			//                           << " iteration "
+                        //   << nonlin_iter + inner_iter
+                           << ":\n"
+                           << std::setw(19) << std::scientific << res_norm_restart
+                           << "   update norm\n"
+                           << std::setw(19) << std::scientific << solution_norm_restart
+                           << "   solution norm\n"
+                           << std::setw(19) << newton_alpha
+                           << "   newton alpha\n\n"
+                           << std::endl;
+
+      		    }
+      		  else 
+      		    {
+      		      pout << std::endl
+      			   << "   "
+      			   << " iteration "
+      			//	   << nonlin_iter + inner_iter
+      			   << ":\n"
+      			   << std::setw(19) << std::scientific << res_norm_restart
+      			   << "   update norm\n"
+      			   << std::setw(19) << newton_alpha
+      			   << "   newton alpha\n\n"
+      			   << std::endl;
+      		    }
+
+      		  interface.residual(t,solution,solution_dot,*residual);
+      		}
+
+      	      if (std::fabs(res_norm) < abs_tol ||
+      		  std::fabs(res_norm) < rel_tol*solution_norm)
+      		{
+      		  pout << std::endl
+      		       << "   "
+      		       << std::setw(19) << std::scientific << res_norm_restart
+      		       << " (converged in "
+      		    //  << nonlin_iter
+      		       << " iterations)\n\n"
+      		       << std::endl;
+      		  *previous_solution = solution;
+      		  break; // Break of the while cycle ... after this a time advancement happens.
+      		}
+      	      else if (outer_iter == max_outer_non_linear_iterations)
+      		{
+      		  pout << std::endl
+      		       << "   "
+      		       << std::setw(19) << std::scientific << res_norm_restart
+      		       << " (not converged in "
+      		    //		       << std::setw(3) << nonlin_iter
+      		       << " iterations)\n\n"
+      		       << std::endl;
+      		  AssertThrow(false,
+      			      ExcMessage ("No convergence in nonlinear solver"));
+      		}
+      	    }
+
+
+
+
+
+	  // solution *=0;
+	  // solution_dot *=0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	  
         }
       else
         {
@@ -320,8 +489,9 @@ unsigned int IMEXStepper<VEC>::start_ode(VEC &solution, VEC &solution_dot)
           if ((step_number % output_period) == 0)
             interface.output_step(t, solution, solution_dot,  step_number, step_size);
         }
-
-      *previous_solution = solution;
+      if(!restart)
+	*previous_solution = solution;
+    
       update_Jacobian = update_jacobian_continuously;
 
     } // End of the cycle over time.
