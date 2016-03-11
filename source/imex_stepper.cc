@@ -157,10 +157,12 @@ unsigned int IMEXStepper<VEC>::start_ode(VEC &solution, VEC &solution_dot)
   // system's Jacobian be updated.
   bool update_Jacobian = true;
 
+  double previous_time;
   bool restart=false;
   // The overall cycle over time begins here.
-  for (; t<=final_time+1e-15; t+= step_size, ++step_number)
+  while (t<=final_time+1e-15)
     {
+      previous_time = t;
       pout << "Time = " << t << std::endl;
       // Implicit Euler scheme.
       solution_dot = solution;
@@ -169,22 +171,21 @@ unsigned int IMEXStepper<VEC>::start_ode(VEC &solution, VEC &solution_dot)
       //  *previous_solution = solution;
 
       do_newton(t,alpha,update_Jacobian,solution,solution_dot);
-
+      t += step_size;
+      ++step_number;
       restart = interface.solver_should_restart(t,step_number,step_size,solution,solution_dot);
 
       while (restart == true)
         {
+	  t = previous_time;
           previous_solution = interface.create_new_vector();
 
-          const unsigned int choice = 2;
+          const unsigned int choice = 1;
 
           if (choice == 1)
             {
               //////////// cold restart
-              *previous_solution = solution;
-              solution_dot = solution;
-              solution_dot -= *previous_solution;
-              solution_dot *= alpha;
+	      solution_dot *= 0;
               do_newton(t,alpha,update_Jacobian,solution,solution_dot);
               *previous_solution = solution;
               //////////////////////////////////////////
@@ -203,7 +204,7 @@ unsigned int IMEXStepper<VEC>::start_ode(VEC &solution, VEC &solution_dot)
             {
               ////////// use y diff
               *previous_solution = solution;
-              do_newton(t,0,update_Jacobian,*previous_solution,solution_dot);
+              do_newton(t-step_size,0,update_Jacobian,*previous_solution,solution_dot);
 
 
               do_newton(t,0,update_Jacobian,solution, solution_dot);
@@ -217,6 +218,7 @@ unsigned int IMEXStepper<VEC>::start_ode(VEC &solution, VEC &solution_dot)
               //*previous_solution = solution;
               /////////////////////////////////////////////////
             }
+	  t += step_size;
           restart = interface.solver_should_restart(t,step_number,step_size,solution,solution_dot);
 
 
