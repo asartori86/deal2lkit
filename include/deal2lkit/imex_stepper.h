@@ -75,15 +75,15 @@ public:
 
 private:
 
-/**
- * solve newton for given y and y_dot. this function is called at each
- * time step.
- */
-void do_newton (const double t,
-		const double alpha,
-		const bool update_jacobian,
-		VEC &y,
-		VEC &y_dot);
+  /**
+   * solve newton for given y and y_dot. this function is called at each
+   * time step.
+   */
+  void do_newton (const double t,
+                  const double alpha,
+                  const bool update_jacobian,
+                  VEC &y,
+                  VEC &y_dot);
   /** The solver interface. */
   SundialsInterface<VEC> &interface;
 
