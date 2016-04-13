@@ -1,0 +1,14 @@
+# Parameter file generated with 
+# D2K_GIT_BRANCH=       kinsol_implementation
+# D2K_GIT_SHORTREV=     5aa0ae0
+# DEAL_II_GIT_BRANCH=   master
+# DEAL_II_GIT_SHORTREV= b3f2eeb
+subsection kinsol
+  set Level of verbosity of the KINSOL solver            = 0
+  set Maximum number of iteration before update Jacobian = 10
+  set Maximum number of iterations                       = 200
+  set Step tolerance                                     = 1e-11
+  set Strategy                                           = newton
+  set Tolerance for residuals                            = 1e-6
+  set Use internal KINSOL direct solver                  = false
+end
